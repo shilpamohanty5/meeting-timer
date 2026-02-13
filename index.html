@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Timer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #00D54B;
+    --green-light: #e6faf0;
+    --green-hover: #00b840;
+    --black: #000000;
+    --white: #FFFFFF;
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --surface-alt: #F5F5F5;
+    --text: #000000;
+    --text-secondary: #6B6B6B;
+    --border: #E8E8E8;
+    --danger: #FF3B30;
+    --danger-light: #FFF0F0;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 100px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
+    --font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ========== CONFIG SCREEN ========== */
+  #config-screen {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+  #config-screen.hidden { display: none; }
+
+  .config-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .config-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .config-header p {
+    color: var(--text-secondary);
+    font-size: 15px;
+  }
+
+  .config-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+
+  .config-field { margin-bottom: 24px; }
+  .config-field:last-child { margin-bottom: 0; }
+  .config-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .config-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 16px;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color 0.2s;
+  }
+  .config-input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,213,75,0.12);
+  }
+
+  /* Segment rows */
+  .segments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .segments-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+  }
+
+  .seg-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 72px 40px 40px 40px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .seg-row input {
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color 0.2s;
+  }
+  .seg-row input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,213,75,0.12);
+  }
+  .seg-row input::placeholder { color: #BFBFBF; }
+
+  .seg-row-btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: var(--radius-sm);
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  .seg-row-btn:hover { background: var(--border); color: var(--text); }
+  .seg-row-btn.remove:hover { background: var(--danger-light); color: var(--danger); }
+
+  .btn-add-seg {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px;
+    background: var(--surface-alt);
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 14px; font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+  }
+  .btn-add-seg:hover {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-light);
+  }
+
+  /* Primary button */
+  .btn-primary {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    background: var(--green);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-primary:hover {
+    background: var(--green-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* ========== TIMER SCREEN ========== */
+  #timer-screen { display: none; }
+  #timer-screen.visible { display: block; }
+
+  .timer-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .timer-header {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .timer-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .timer-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* Segment nav */
+  #segment-nav {
+    display: flex; gap: 6px; justify-content: center;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .seg-pill {
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .seg-pill:hover { border-color: var(--text-secondary); color: var(--text); }
+  .seg-pill.active {
+    background: var(--black);
+    color: var(--white);
+    border-color: var(--black);
+  }
+  .seg-pill.done {
+    background: var(--green-light);
+    color: var(--green-hover);
+    border-color: var(--green);
+  }
+
+  /* Timer card */
+  #timer-area {
+    text-align: center;
+    padding: 40px 24px 32px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.3s;
+  }
+  #timer-area.flash { animation: flash-bg 0.5s ease; }
+  @keyframes flash-bg {
+    0%, 100% { background: var(--surface); }
+    50% { background: var(--green-light); }
+  }
+  #timer-area.overtime { box-shadow: 0 4px 12px rgba(255,59,48,0.15); }
+  @keyframes flash-bg-danger {
+    0%, 100% { background: var(--surface); }
+    50% { background: var(--danger-light); }
+  }
+  #timer-area.overtime.flash { animation: flash-bg-danger 0.5s ease; }
+
+  #segment-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  #topic-name {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  #goal-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+
+  #countdown {
+    font-size: 80px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    transition: color 0.3s;
+  }
+  #countdown.overtime-text { color: var(--danger); }
+
+  #overtime-badge {
+    display: none;
+    font-size: 13px;
+    color: var(--danger);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  #overtime-badge.visible { display: block; }
+
+  /* Progress bars */
+  .progress-row {
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 8px;
+    padding: 0 24px;
+  }
+  .progress-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: 56px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .progress-track {
+    flex: 1; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 1s linear, background-color 0.3s;
+    background: var(--green);
+  }
+  .progress-fill.overtime-fill { background: var(--danger); }
+
+  /* Next up */
+  #next-up {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 16px;
+  }
+  #next-up strong { color: var(--text); }
+
+  /* Controls */
+  #controls {
+    display: flex; justify-content: center; gap: 8px;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.01em;
+  }
+  .btn:disabled { opacity: 0.25; cursor: default; transform: none !important; }
+
+  .btn-start {
+    background: var(--green);
+    color: var(--white);
+    font-size: 18px;
+    padding: 16px 48px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+  }
+  .btn-start:hover { background: var(--green-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+
+  .btn-pause {
+    background: var(--black);
+    color: var(--white);
+  }
+  .btn-pause:hover { background: #333; transform: translateY(-1px); }
+
+  .btn-resume {
+    background: var(--green);
+    color: var(--white);
+  }
+  .btn-resume:hover { background: var(--green-hover); transform: translateY(-1px); }
+
+  .btn-prev, .btn-next {
+    background: var(--surface-alt);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-prev:hover, .btn-next:hover {
+    background: var(--border);
+    transform: translateY(-1px);
+  }
+
+  .btn-reset {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border);
+  }
+  .btn-reset:hover { background: var(--surface-alt); }
+
+  .btn-back-config {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border);
+  }
+  .btn-back-config:hover { background: var(--surface-alt); }
+
+  /* Pre-start overlay */
+  #pre-start {
+    position: fixed; inset: 0;
+    background: rgba(250,250,250,0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; flex-direction: column; gap: 16px;
+  }
+  #pre-start h2 {
+    font-size: 28px; font-weight: 700;
+  }
+  #pre-start p {
+    color: var(--text-secondary); font-size: 16px;
+  }
+  #pre-start .agenda-preview {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 24px;
+    margin: 8px 0 16px;
+    max-width: 480px;
+    width: 100%;
+    text-align: left;
+  }
+  .agenda-preview-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .agenda-preview-row:last-child { border-bottom: none; }
+  .agenda-preview-topic { font-weight: 500; }
+  .agenda-preview-dur { color: var(--text-secondary); font-weight: 600; font-size: 13px; }
+
+  #pre-start.hidden { display: none; }
+
+  /* Meeting ended */
+  #meeting-ended {
+    display: none; text-align: center; padding: 40px 24px;
+    background: var(--surface); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md); margin-bottom: 16px;
+  }
+  #meeting-ended h2 { font-size: 24px; color: var(--green); margin-bottom: 8px; }
+  #meeting-ended p { color: var(--text-secondary); font-size: 15px; }
+
+  /* Notes */
+  #notes-section { margin-top: 8px; }
+  .notes-heading {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+
+  .note-block {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 8px;
+    box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--border);
+    transition: all 0.3s;
+  }
+  .note-block.active-note {
+    border-left-color: var(--green);
+    box-shadow: var(--shadow-md);
+  }
+  .note-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .note-topic { font-weight: 700; font-size: 15px; color: var(--text); }
+  .note-duration { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+  .note-goal { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+  .note-input {
+    width: 100%; min-height: 64px;
+    background: var(--surface-alt);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+  .note-input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,213,75,0.12);
+  }
+  .note-input::placeholder { color: #BFBFBF; }
+
+  /* Copy link button */
+  .btn-copy-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    background: var(--surface-alt);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 12px;
+  }
+  .btn-copy-link:hover { border-color: var(--green); color: var(--green); }
+  .btn-copy-link.copied { border-color: var(--green); color: var(--green); }
+
+  @media (max-width: 640px) {
+    #countdown { font-size: 56px; }
+    #topic-name { font-size: 20px; }
+    .btn { padding: 8px 16px; font-size: 13px; }
+    .seg-row { grid-template-columns: 1fr 80px 36px 36px 36px; }
+    .seg-row input:nth-child(2) { display: none; } /* hide goal on mobile */
+    #config-screen { padding: 24px 16px; }
+    .config-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ CONFIG SCREEN ============ -->
+<div id="config-screen">
+  <div class="config-header">
+    <h1>Meeting Timer</h1>
+    <p>Set up your agenda, then start the timer.</p>
+  </div>
+
+  <div class="config-card">
+    <div class="config-field">
+      <label class="config-label" for="meeting-title">Meeting Title</label>
+      <input class="config-input" type="text" id="meeting-title" value="Cross-team Prod/Eng Sync" placeholder="e.g. Weekly Standup">
+    </div>
+
+    <div class="segments-header">
+      <h3>Agenda Segments</h3>
+    </div>
+    <div id="config-segments"></div>
+    <button class="btn-add-seg" onclick="addConfigSegment()">+ Add segment</button>
+  </div>
+
+  <button class="btn-primary" onclick="loadTimer()">Load Timer</button>
+  <button class="btn-copy-link" id="btn-copy" onclick="copyLink()" style="display:none;">Copy shareable link</button>
+</div>
+
+<!-- ============ TIMER SCREEN ============ -->
+<div id="timer-screen">
+
+  <!-- Pre-start overlay -->
+  <div id="pre-start">
+    <h2 id="pre-title">Ready to start?</h2>
+    <p id="pre-subtitle"></p>
+    <div class="agenda-preview" id="agenda-preview"></div>
+    <button class="btn btn-start" onclick="startMeeting()">Start Meeting</button>
+  </div>
+
+  <div class="timer-container">
+    <div class="timer-header"><h1 id="timer-title">Meeting</h1></div>
+    <p class="timer-subtitle" id="timer-subtitle"></p>
+
+    <div id="segment-nav"></div>
+
+    <div id="timer-area">
+      <div id="segment-label">Segment 1 of 6</div>
+      <div id="topic-name"></div>
+      <div id="goal-text"></div>
+      <div id="countdown">00:00</div>
+      <div id="overtime-badge">OVERTIME</div>
+      <div class="progress-row">
+        <span class="progress-label">Segment</span>
+        <div class="progress-track"><div class="progress-fill" id="seg-progress" style="width:0%"></div></div>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Meeting</span>
+        <div class="progress-track"><div class="progress-fill" id="meeting-progress" style="width:0%"></div></div>
+      </div>
+      <div id="next-up"></div>
+    </div>
+
+    <div id="meeting-ended">
+      <h2>Meeting Complete</h2>
+      <p>All segments finished. Your notes are below.</p>
+    </div>
+
+    <div id="controls">
+      <button class="btn btn-prev" id="btn-prev" onclick="prevSegment()" disabled>&larr; Prev</button>
+      <button class="btn btn-pause" id="btn-pause" onclick="togglePause()" disabled>Pause</button>
+      <button class="btn btn-next" id="btn-next" onclick="nextSegment()" disabled>Next &rarr;</button>
+      <button class="btn btn-reset" onclick="resetMeeting()">Reset</button>
+      <button class="btn btn-back-config" onclick="backToConfig()">Edit Agenda</button>
+    </div>
+
+    <div id="notes-section">
+      <div class="notes-heading">Meeting Notes</div>
+      <div id="notes-container"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ DEFAULT AGENDA (today's meeting) ============
+const DEFAULT_SEGMENTS = [
+  { topic: "Quick status on 4/1 progress + scope", goal: "Shared picture", duration: 10 },
+  { topic: "4/1 \u2192 5/1 gap", goal: "Chris understands the work volume between milestones", duration: 15 },
+  { topic: "Cross-team dependencies", goal: "Each team lead leaves with a list of items to size by Feb 17", duration: 15 },
+  { topic: "Pre-Auth V2", goal: "Quick discussion on timeline feasibility", duration: 5 },
+  { topic: "Resourcing discussion with Chris", goal: "Alignment", duration: 10 },
+  { topic: "Next steps + asks", goal: "Clear owners and dates for follow-up \u2014 sizing estimates due by Tues Feb 17, roadmap alignment session the following week", duration: 5 }
+];
+
+let SEGMENTS = [];
+let meetingTitle = "";
+let TOTAL_SECONDS = 0;
+let currentIndex = 0;
+let remainingSeconds = 0;
+let isRunning = false;
+let isPaused = false;
+let isOvertime = false;
+let overtimeSeconds = 0;
+let intervalId = null;
+let meetingElapsed = 0;
+let started = false;
+
+// ============ AUDIO ============
+let audioCtx = null;
+function playChime() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  [523.25, 659.25].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.2 + 0.5);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + i * 0.2);
+    osc.stop(audioCtx.currentTime + i * 0.2 + 0.5);
+  });
+}
+function playEndChime() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime + i * 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.15 + 0.6);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + i * 0.15);
+    osc.stop(audioCtx.currentTime + i * 0.15 + 0.6);
+  });
+}
+
+// ============ CONFIG SCREEN ============
+function renderConfigSegments(segments) {
+  const container = document.getElementById("config-segments");
+  container.innerHTML = "";
+  segments.forEach((seg, i) => {
+    const row = document.createElement("div");
+    row.className = "seg-row";
+    row.innerHTML = `
+      <input type="text" value="${escHtml(seg.topic)}" placeholder="Topic" data-field="topic" data-index="${i}">
+      <input type="text" value="${escHtml(seg.goal)}" placeholder="Goal" data-field="goal" data-index="${i}">
+      <input type="number" value="${seg.duration}" min="1" max="120" placeholder="Min" data-field="duration" data-index="${i}" style="text-align:center;">
+      <button class="seg-row-btn" onclick="moveSegment(${i}, -1)" title="Move up">&uarr;</button>
+      <button class="seg-row-btn" onclick="moveSegment(${i}, 1)" title="Move down">&darr;</button>
+      <button class="seg-row-btn remove" onclick="removeSegment(${i})" title="Remove">&times;</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function getConfigSegments() {
+  const rows = document.querySelectorAll(".seg-row");
+  const segs = [];
+  rows.forEach(row => {
+    const topic = row.querySelector('[data-field="topic"]').value.trim();
+    const goal = row.querySelector('[data-field="goal"]').value.trim();
+    const duration = parseInt(row.querySelector('[data-field="duration"]').value) || 5;
+    if (topic) segs.push({ topic, goal, duration });
+  });
+  return segs;
+}
+
+function addConfigSegment() {
+  const segs = getConfigSegments();
+  segs.push({ topic: "", goal: "", duration: 5 });
+  renderConfigSegments(segs);
+  // Focus the new topic input
+  const inputs = document.querySelectorAll('.seg-row input[data-field="topic"]');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removeSegment(index) {
+  const segs = getConfigSegments();
+  if (segs.length <= 1) return;
+  segs.splice(index, 1);
+  renderConfigSegments(segs);
+}
+
+function moveSegment(index, dir) {
+  const segs = getConfigSegments();
+  const newIndex = index + dir;
+  if (newIndex < 0 || newIndex >= segs.length) return;
+  [segs[index], segs[newIndex]] = [segs[newIndex], segs[index]];
+  renderConfigSegments(segs);
+}
+
+function escHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ============ URL HASH PERSISTENCE ============
+function encodeToHash(title, segments) {
+  const data = { title, segments };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+}
+
+function decodeFromHash(hash) {
+  try {
+    const json = decodeURIComponent(escape(atob(hash)));
+    return JSON.parse(json);
+  } catch (e) {
+    return null;
+  }
+}
+
+function copyLink() {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById("btn-copy");
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = "Copy shareable link";
+      btn.classList.remove("copied");
+    }, 2000);
+  });
+}
+
+// ============ LOAD TIMER ============
+function loadTimer() {
+  const title = document.getElementById("meeting-title").value.trim() || "Meeting";
+  const segs = getConfigSegments();
+  if (segs.length === 0) return;
+
+  meetingTitle = title;
+  SEGMENTS = segs;
+  TOTAL_SECONDS = SEGMENTS.reduce((s, seg) => s + seg.duration * 60, 0);
+
+  // Update URL hash
+  const hash = encodeToHash(title, segs);
+  window.location.hash = hash;
+  document.getElementById("btn-copy").style.display = "";
+
+  showTimerScreen();
+}
+
+function showTimerScreen() {
+  document.getElementById("config-screen").classList.add("hidden");
+  const ts = document.getElementById("timer-screen");
+  ts.classList.add("visible");
+
+  // Set titles
+  document.getElementById("timer-title").textContent = meetingTitle;
+  const totalMin = SEGMENTS.reduce((s, seg) => s + seg.duration, 0);
+  document.getElementById("timer-subtitle").textContent =
+    `${SEGMENTS.length} segments \u2022 ${totalMin} minutes`;
+
+  // Pre-start
+  document.getElementById("pre-title").textContent = meetingTitle;
+  document.getElementById("pre-subtitle").textContent =
+    `${SEGMENTS.length} segments \u2022 ${totalMin} minutes`;
+
+  // Agenda preview
+  const preview = document.getElementById("agenda-preview");
+  preview.innerHTML = "";
+  SEGMENTS.forEach((seg, i) => {
+    const row = document.createElement("div");
+    row.className = "agenda-preview-row";
+    row.innerHTML = `<span class="agenda-preview-topic">${i + 1}. ${escHtml(seg.topic)}</span><span class="agenda-preview-dur">${seg.duration} min</span>`;
+    preview.appendChild(row);
+  });
+
+  // Init timer state
+  currentIndex = 0;
+  remainingSeconds = SEGMENTS[0].duration * 60;
+  meetingElapsed = 0;
+  isRunning = false;
+  isPaused = false;
+  isOvertime = false;
+  overtimeSeconds = 0;
+  started = false;
+
+  buildNav();
+  buildNotes();
+  updateDisplay();
+}
+
+function backToConfig() {
+  if (isRunning && !confirm("Leave the timer? Your notes will be lost.")) return;
+  clearInterval(intervalId);
+  isRunning = false;
+  document.getElementById("timer-screen").classList.remove("visible");
+  document.getElementById("config-screen").classList.remove("hidden");
+  document.getElementById("timer-area").style.display = "";
+  document.getElementById("meeting-ended").style.display = "none";
+  document.getElementById("pre-start").classList.remove("hidden");
+}
+
+// ============ TIMER LOGIC ============
+function buildNav() {
+  const nav = document.getElementById("segment-nav");
+  nav.innerHTML = "";
+  SEGMENTS.forEach((seg, i) => {
+    const pill = document.createElement("button");
+    pill.className = "seg-pill" + (i === currentIndex ? " active" : "") + (i < currentIndex ? " done" : "");
+    const words = seg.topic.split(" ").slice(0, 3).join(" ");
+    pill.textContent = (i + 1) + ". " + words;
+    pill.onclick = () => { if (started) jumpTo(i); };
+    nav.appendChild(pill);
+  });
+}
+
+function buildNotes() {
+  const container = document.getElementById("notes-container");
+  container.innerHTML = "";
+  SEGMENTS.forEach((seg, i) => {
+    const block = document.createElement("div");
+    block.className = "note-block" + (i === currentIndex ? " active-note" : "");
+    block.id = "note-block-" + i;
+    block.innerHTML = `
+      <div class="note-header">
+        <span class="note-topic">${i + 1}. ${escHtml(seg.topic)}</span>
+        <span class="note-duration">${seg.duration} min</span>
+      </div>
+      <div class="note-goal">Goal: ${escHtml(seg.goal)}</div>
+      <textarea class="note-input" id="note-${i}" placeholder="Type notes here..."></textarea>
+    `;
+    container.appendChild(block);
+  });
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function updateDisplay() {
+  const seg = SEGMENTS[currentIndex];
+  document.getElementById("segment-label").textContent = `Segment ${currentIndex + 1} of ${SEGMENTS.length}`;
+  document.getElementById("topic-name").textContent = seg.topic;
+  document.getElementById("goal-text").textContent = "Goal: " + seg.goal;
+
+  const cd = document.getElementById("countdown");
+  const badge = document.getElementById("overtime-badge");
+  const area = document.getElementById("timer-area");
+
+  if (isOvertime) {
+    cd.textContent = "+" + formatTime(overtimeSeconds);
+    cd.classList.add("overtime-text");
+    badge.classList.add("visible");
+    area.classList.add("overtime");
+  } else {
+    cd.textContent = formatTime(remainingSeconds);
+    cd.classList.remove("overtime-text");
+    badge.classList.remove("visible");
+    area.classList.remove("overtime");
+  }
+
+  // Segment progress
+  const segTotal = seg.duration * 60;
+  const segElapsed = isOvertime ? segTotal : segTotal - remainingSeconds;
+  const segFill = document.getElementById("seg-progress");
+  segFill.style.width = Math.min(100, (segElapsed / segTotal) * 100) + "%";
+  if (isOvertime) segFill.classList.add("overtime-fill");
+  else segFill.classList.remove("overtime-fill");
+
+  // Meeting progress
+  document.getElementById("meeting-progress").style.width =
+    Math.min(100, (meetingElapsed / TOTAL_SECONDS) * 100) + "%";
+
+  // Next up
+  const nextEl = document.getElementById("next-up");
+  if (currentIndex < SEGMENTS.length - 1) {
+    const next = SEGMENTS[currentIndex + 1];
+    nextEl.innerHTML = `Up next: <strong>${escHtml(next.topic)}</strong> (${next.duration} min)`;
+  } else {
+    nextEl.textContent = "This is the final segment";
+  }
+
+  // Nav pills
+  document.querySelectorAll(".seg-pill").forEach((pill, i) => {
+    pill.className = "seg-pill" + (i === currentIndex ? " active" : "") + (i < currentIndex ? " done" : "");
+  });
+
+  // Note blocks
+  document.querySelectorAll(".note-block").forEach((block, i) => {
+    if (i === currentIndex) {
+      block.classList.add("active-note");
+    } else {
+      block.classList.remove("active-note");
+    }
+  });
+
+  document.getElementById("btn-prev").disabled = currentIndex === 0;
+}
+
+function tick() {
+  if (!isRunning || isPaused) return;
+  if (isOvertime) {
+    overtimeSeconds++;
+  } else {
+    remainingSeconds--;
+    meetingElapsed++;
+    if (remainingSeconds <= 0) {
+      if (currentIndex < SEGMENTS.length - 1) {
+        playChime(); flashTimer();
+        isOvertime = false;
+        overtimeSeconds = 0;
+        currentIndex++;
+        remainingSeconds = SEGMENTS[currentIndex].duration * 60;
+      } else {
+        playEndChime(); flashTimer();
+        isRunning = false;
+        clearInterval(intervalId);
+        document.getElementById("timer-area").style.display = "none";
+        document.getElementById("meeting-ended").style.display = "block";
+        document.getElementById("btn-pause").disabled = true;
+        document.getElementById("btn-next").disabled = true;
+      }
+    }
+  }
+  updateDisplay();
+}
+
+function flashTimer() {
+  const area = document.getElementById("timer-area");
+  area.classList.remove("flash");
+  void area.offsetWidth;
+  area.classList.add("flash");
+}
+
+function startMeeting() {
+  started = true;
+  document.getElementById("pre-start").classList.add("hidden");
+  document.getElementById("btn-pause").disabled = false;
+  document.getElementById("btn-next").disabled = false;
+  isRunning = true;
+  isPaused = false;
+  intervalId = setInterval(tick, 1000);
+  updateDisplay();
+  const firstNote = document.getElementById("note-0");
+  if (firstNote) firstNote.focus();
+}
+
+function togglePause() {
+  const btn = document.getElementById("btn-pause");
+  if (isPaused) {
+    isPaused = false;
+    btn.textContent = "Pause";
+    btn.className = "btn btn-pause";
+  } else {
+    isPaused = true;
+    btn.textContent = "Resume";
+    btn.className = "btn btn-resume";
+  }
+}
+
+function nextSegment() {
+  if (currentIndex >= SEGMENTS.length - 1) return;
+  if (!isOvertime) meetingElapsed += remainingSeconds;
+  isOvertime = false;
+  overtimeSeconds = 0;
+  currentIndex++;
+  remainingSeconds = SEGMENTS[currentIndex].duration * 60;
+  playChime(); flashTimer();
+  updateDisplay();
+  scrollToNote(currentIndex);
+}
+
+function prevSegment() {
+  if (currentIndex <= 0) return;
+  meetingElapsed = 0;
+  for (let i = 0; i < currentIndex - 1; i++) meetingElapsed += SEGMENTS[i].duration * 60;
+  isOvertime = false;
+  overtimeSeconds = 0;
+  currentIndex--;
+  remainingSeconds = SEGMENTS[currentIndex].duration * 60;
+  updateDisplay();
+  scrollToNote(currentIndex);
+}
+
+function jumpTo(index) {
+  if (index === currentIndex) return;
+  meetingElapsed = 0;
+  for (let i = 0; i < index; i++) meetingElapsed += SEGMENTS[i].duration * 60;
+  isOvertime = false;
+  overtimeSeconds = 0;
+  currentIndex = index;
+  remainingSeconds = SEGMENTS[currentIndex].duration * 60;
+  updateDisplay();
+  scrollToNote(currentIndex);
+}
+
+function scrollToNote(index) {
+  const block = document.getElementById("note-block-" + index);
+  if (block) block.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function resetMeeting() {
+  if (!confirm("Reset the meeting timer? Your notes will be kept.")) return;
+  clearInterval(intervalId);
+  currentIndex = 0;
+  remainingSeconds = SEGMENTS[0].duration * 60;
+  isRunning = false;
+  isPaused = false;
+  isOvertime = false;
+  overtimeSeconds = 0;
+  meetingElapsed = 0;
+  started = false;
+  document.getElementById("timer-area").style.display = "";
+  document.getElementById("meeting-ended").style.display = "none";
+  document.getElementById("pre-start").classList.remove("hidden");
+  document.getElementById("btn-pause").disabled = true;
+  document.getElementById("btn-pause").textContent = "Pause";
+  document.getElementById("btn-pause").className = "btn btn-pause";
+  document.getElementById("btn-next").disabled = true;
+  updateDisplay();
+}
+
+// ============ INIT ============
+function init() {
+  const hash = window.location.hash.slice(1);
+  if (hash) {
+    const data = decodeFromHash(hash);
+    if (data && data.segments && data.segments.length) {
+      // Load from URL hash — go straight to timer
+      document.getElementById("meeting-title").value = data.title || "Meeting";
+      renderConfigSegments(data.segments);
+      meetingTitle = data.title || "Meeting";
+      SEGMENTS = data.segments;
+      TOTAL_SECONDS = SEGMENTS.reduce((s, seg) => s + seg.duration * 60, 0);
+      showTimerScreen();
+      return;
+    }
+  }
+  // Show config screen with defaults
+  renderConfigSegments(DEFAULT_SEGMENTS);
+}
+
+init();
+</script>
+
+</body>
+</html>
